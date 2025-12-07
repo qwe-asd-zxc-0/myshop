@@ -24,18 +24,17 @@
 
 <script>
     // ================= 配置区域 =================
-    // 2. 这里填入你的 Supabase 信息
     
-    // (A) 刚才截图里的 Project URL (我已经帮你填好了)
+    // (A) Project URL (保持不变)
     const supabaseUrl = 'https://qgdteuupcnhyyzmkpnin.supabase.co'
     
-    // (B) 请把你在网页上找到的 anon key 粘贴在下面引号里！
+    // (B) ⚠️⚠️⚠️ 请再次在这里粘贴你的 Key !!!
     const supabaseKey = 'sb_publishable_q8M4jFtaiPAWtefmIS7G9g_OtoJUcEc'
     
     // ===========================================
 
-    // 初始化连接
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+    // 初始化连接 (这里我改了名字，修复了报错)
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey)
 
     // 注册功能的具体实现
     async function doRegister() {
@@ -50,19 +49,20 @@
 
         status.innerText = "正在连接云数据库...";
 
-        // 向 Supabase 发送注册请求
-        const { data, error } = await supabase.auth.signUp({
+        // 发送注册请求
+        const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
         })
 
         if (error) {
             status.innerText = "注册失败: " + error.message;
+            console.error(error); // 在控制台打印详细错误
             alert("❌ 注册失败: " + error.message);
         } else {
             status.innerText = "注册成功！请去邮箱查收验证邮件。";
             alert("✅ 注册成功！\n请去你的邮箱确认链接，然后用户就生效了！");
-            console.log(data);
+            console.log("注册成功数据:", data);
         }
     }
 </script>
