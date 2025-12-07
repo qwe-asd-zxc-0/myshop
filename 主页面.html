@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球外烟价格与库存查询系统</title>
+    <style>
+        /* --- CSS 样式 --- */
+        :root { --primary-color: #d32f2f; --primary-dark: #b71c1c; --bg-color: #f4f6f8; --card-bg: #ffffff; --text-main: #333; --text-sub: #666; --success-color: #2e7d32; --warning-color: #ef6c00; --danger-color: #c62828; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
+        
+        header { background-color: var(--primary-color); color: white; padding: 15px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .header-title h1 { margin: 0; font-size: 22px; font-weight: 700; }
+        .header-title p { margin: 2px 0 0; opacity: 0.9; font-size: 12px; }
+        
+        .user-actions { display: flex; gap: 15px; }
+        .btn-auth { background-color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn-auth:hover { background-color: white; color: var(--primary-color); }
+        
+        /* 增加 cursor:pointer 和 hover 效果提示用户可点击 */
+        .user-profile { display: none; align-items: center; gap: 10px; cursor: pointer; transition: opacity 0.2s; padding: 5px 10px; border-radius: 6px; }
+        .user-profile:hover { background-color: rgba(255,255,255,0.1); }
+        
+        .avatar-circle { width: 32px; height: 32px; background-color: white; color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+        .search-container { max-width: 800px; margin: 30px auto 10px auto; padding: 0 20px; text-align: center; }
+        input[type="text"] { width: 100%; max-width: 600px; padding: 16px 20px; font-size: 16px; border: 1px solid #ddd; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); outline: none; transition: all 0.3s; }
+        input[type="text"]:focus { box-shadow: 0 6px 16px rgba(211, 47, 47, 0.15); border-color: var(--primary-color); }
+
+        .stats-bar { text-align: center; font-size: 14px; color: #888; margin-bottom: 30px; }
+        
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; max-width: 1200px; margin: 0 auto 60px auto; padding: 0 20px; }
+        .product-card { background: var(--card-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: all 0.3s ease; display: flex; flex-direction: column; border: 1px solid transparent; position: relative; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: #eee; }
+        
+        .card-img-placeholder { height: 160px; background-color: #f0f2f5; display: flex; align-items: center; justify-content: center; color: #adb5bd; font-size: 14px; font-weight: 500; position: relative; padding: 0; overflow: hidden; }
+        .brand-badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; z-index: 2; }
+        
+        .card-info { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; }
+        .product-name { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: #222; }
+        .product-details { font-size: 12px; color: var(--text-sub); margin-bottom: 12px; line-height: 1.6; }
+        
+        .card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f0f0f0; padding-top: 12px; }
+        .price-tag { color: var(--primary-color); font-size: 18px; font-weight: 800; }
+        .stock-tag { font-size: 12px; padding: 3px 8px; border-radius: 12px; font-weight: 600; }
+        .stock-high { background-color: #e8f5e9; color: var(--success-color); }
+        .stock-low { background-color: #fff3e0; color: var(--warning-color); }
+        .stock-out { background-color: #ffebee; color: var(--danger-color); }
+
+        footer { text-align: center; padding: 30px; font-size: 12px; color: #999; background-color: #fff; border-top: 1px solid #eaeaea; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>Global Cigarette Index</h1>
+            <p>全球外烟价格与库存数据库</p>
+        </div>
+        
+        <div class="user-actions" id="guestActions">
+            <button class="btn-auth" onclick="window.location.href='登录注册.html'">登录 / 注册</button>
+        </div>
+
+        <div class="user-profile" id="userProfile" onclick="window.location.href='个人中心.html'" title="点击进入个人中心">
+            <div class="avatar-circle" id="userAvatar">U</div>
+            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                <span style="font-size:14px; font-weight:bold;" id="userNameDisplay">User</span>
+                <span style="font-size:10px; opacity:0.8;">个人中心 &gt;</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="搜索品牌、名称、产地或类型..." onkeyup="filterProducts()">
+    </div>
+    <div class="stats-bar"><span id="totalCount">正在连接服务器...</span></div>
+    <div class="grid-container" id="productGrid">
+        </div>
+
+    <footer>
+        <p><strong>法律声明：</strong> 本站仅为模拟演示的内部数据库系统，不提供任何烟草制品的销售服务。</p>
+        <p>吸烟有害健康，未成年人禁止吸烟。</p>
+    </footer>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        const SERVER_URL = 'http://localhost:3000';
+        let allProducts = []; // 存储从后端获取的所有数据
+
+        window.onload = function() {
+            checkLoginStatus();
+            fetchAllProducts();
+        };
+
+        // 1. 检查用户是否登录 (LocalStorage)
+        function checkLoginStatus() {
+            const userStr = localStorage.getItem('gci_current_user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                document.getElementById('guestActions').style.display = 'none';
+                document.getElementById('userProfile').style.display = 'flex';
+                document.getElementById('userNameDisplay').textContent = user.username;
+                document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+            }
+        }
+
+        // 2. 从后端获取真实数据
+        async function fetchAllProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/products`);
+                if (!response.ok) throw new Error("无法连接后端 API");
+                
+                const data = await response.json();
+                allProducts = data; // 保存数据用于搜索过滤
+                renderProducts(data);
+                
+            } catch (err) {
+                console.error(err);
+                document.getElementById('productGrid').innerHTML = 
+                    `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#c62828;">
+                        连接服务器失败<br>
+                        <span style="font-size:12px; color:#666;">请确保 node serve.js 正在运行</span>
+                     </div>`;
+                document.getElementById('totalCount').textContent = "服务暂时不可用";
+            }
+        }
+
+        // 3. 渲染商品卡片
+        function renderProducts(data) {
+            const grid = document.getElementById('productGrid');
+            const countLabel = document.getElementById('totalCount');
+            grid.innerHTML = "";
+            countLabel.textContent = `当前数据库共收录 ${data.length} 款产品`;
+
+            if (data.length === 0) {
+                grid.innerHTML = "<div style='grid-column: 1/-1; text-align:center; padding: 40px; color:#999;'>暂无商品数据</div>";
+                return;
+            }
+
+            data.forEach(product => {
+                let stockBadge = product.stock === 0 ? `<span class="stock-tag stock-out">暂时缺货</span>` :
+                                 product.stock < 20 ? `<span class="stock-tag stock-low">库存紧张: ${product.stock}</span>` :
+                                 `<span class="stock-tag stock-high">库存: ${product.stock}</span>`;
+                
+                let imgOpacity = product.stock === 0 ? '0.6' : '1';
+
+                // --- 核心逻辑：判断是否有图片 ---
+                let imageHtml = '';
+                let brandBadge = `<span class="brand-badge">${product.brand || 'Unknown'}</span>`;
+
+                if (product.image) {
+                    imageHtml = `<img src="${SERVER_URL}${product.image}" style="width:100%; height:100%; object-fit:cover; display:block;">`;
+                } else {
+                    brandBadge = `<span class="brand-badge" style="position:static; margin-bottom:5px;">${product.brand || 'Unknown'}</span>`;
+                    imageHtml = `
+                        <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+                            ${brandBadge}
+                            <span>${product.name.split('(')[0]}</span>
+                        </div>`;
+                }
+
+                grid.innerHTML += `
+                    <div class="product-card">
+                        <div class="card-img-placeholder" style="opacity: ${imgOpacity}">
+                             ${product.image ? brandBadge : ''}
+                             ${imageHtml}
+                        </div>
+                        <div class="card-info">
+                            <div class="product-name">${product.name}</div>
+                            <div class="product-details">
+                                产地: ${product.origin} | 焦油: ${product.tar}<br>类型: ${product.type}
+                            </div>
+                            <div class="card-footer">
+                                <span class="price-tag">${product.price}</span>
+                                ${stockBadge}
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function filterProducts() {
+            const input = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filtered = allProducts.filter(p => 
+                `${p.brand} ${p.name} ${p.origin} ${p.type}`.toLowerCase().includes(input)
+            );
+            renderProducts(filtered);
+        }
+    </script>
+</body>
+</html>

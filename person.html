@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - Global Cigarette Index</title>
+    <style>
+        :root { --primary-color: #d32f2f; --primary-dark: #b71c1c; --bg-color: #f4f6f8; --text-main: #333; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        
+        .profile-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .avatar-large {
+            width: 80px; height: 80px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px auto;
+        }
+
+        .user-info h2 { margin: 0; color: #333; }
+        .user-info p { color: #666; font-size: 14px; margin-top: 5px; }
+        .role-badge { 
+            display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 10px;
+            background-color: #e8f5e9; color: #2e7d32; font-weight: bold;
+        }
+        .role-admin { background-color: #ffebee; color: #c62828; }
+
+        .divider { height: 1px; background-color: #eee; margin: 30px 0; }
+
+        .form-title { text-align: left; margin-bottom: 20px; font-size: 16px; font-weight: bold; color: #555; }
+        
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #666; }
+        .form-input {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px;
+        }
+        .form-input:focus { border-color: var(--primary-color); outline: none; }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 25px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: var(--primary-dark); }
+        .btn-secondary { background-color: #f5f5f5; color: #666; }
+        .btn-secondary:hover { background-color: #e0e0e0; }
+
+        .back-link { margin-top: 20px; display: block; font-size: 13px; color: #999; text-decoration: none; }
+        .back-link:hover { color: var(--primary-color); }
+    </style>
+</head>
+<body>
+
+    <div class="profile-card">
+        <div class="avatar-large" id="p_avatar">U</div>
+        <div class="user-info">
+            <h2 id="p_username">加载中...</h2>
+            <div id="p_role_container"><span class="role-badge">用户</span></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-title">🔒 修改登录密码</div>
+        
+        <div class="form-group">
+            <label>旧密码</label>
+            <input type="password" id="oldPass" class="form-input" placeholder="请输入当前密码">
+        </div>
+        <div class="form-group">
+            <label>新密码</label>
+            <input type="password" id="newPass" class="form-input" placeholder="请输入新密码">
+        </div>
+        <div class="form-group">
+            <label>确认新密码</label>
+            <input type="password" id="confirmPass" class="form-input" placeholder="再次输入新密码">
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="logout()">退出登录</button>
+            <button class="btn btn-primary" id="saveBtn" onclick="changePassword()">保存修改</button>
+        </div>
+
+        <a href="主页面.html" class="back-link">← 返回首页</a>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        let currentUser = null;
+
+        window.onload = function() {
+            const userStr = localStorage.getItem('gci_current_user');
+            if (!userStr) {
+                alert('请先登录');
+                window.location.href = '登录注册.html';
+                return;
+            }
+            currentUser = JSON.parse(userStr);
+
+            // 填充页面信息
+            document.getElementById('p_username').textContent = currentUser.username;
+            document.getElementById('p_avatar').textContent = currentUser.username.charAt(0).toUpperCase();
+            
+            if (currentUser.role === 'admin') {
+                document.getElementById('p_role_container').innerHTML = '<span class="role-badge role-admin">管理员 (Admin)</span>';
+            } else {
+                document.getElementById('p_role_container').innerHTML = '<span class="role-badge">普通用户</span>';
+            }
+        };
+
+        async function changePassword() {
+            const oldPass = document.getElementById('oldPass').value;
+            const newPass = document.getElementById('newPass').value;
+            const confirmPass = document.getElementById('confirmPass').value;
+
+            if (!oldPass || !newPass) {
+                alert("请填写完整密码信息");
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                alert("两次输入的新密码不一致");
+                return;
+            }
+
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.textContent = "提交中...";
+
+            try {
+                const res = await fetch(`${API_BASE}/change-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: currentUser.username,
+                        oldPassword: oldPass,
+                        newPassword: newPass
+                    })
+                });
+
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert("密码修改成功！请重新登录。");
+                    logout();
+                } else {
+                    alert("修改失败: " + data.error);
+                }
+            } catch (err) {
+                alert("连接服务器失败");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "保存修改";
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('gci_current_user');
+            window.location.href = '登录注册.html';
+        }
+    </script>
+</body>
+</html>

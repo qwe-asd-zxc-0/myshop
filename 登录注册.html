@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录/注册 - Global Cigarette Index</title>
+    <style>
+        /* --- 样式保持不变 --- */
+        :root { --primary-color: #d32f2f; --primary-dark: #b71c1c; --bg-color: #f4f6f8; --text-main: #333; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        .auth-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; animation: slideUp 0.5s ease; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .auth-header h1 { color: var(--primary-color); margin: 0 0 10px 0; font-size: 24px; }
+        .auth-header p { color: #666; font-size: 14px; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #333; font-weight: 500; }
+        .form-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: 0.3s; }
+        .form-input:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1); }
+        .submit-btn { width: 100%; padding: 14px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
+        .submit-btn:hover { background-color: var(--primary-dark); }
+        .submit-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .auth-footer { margin-top: 25px; font-size: 14px; color: #666; }
+        .link-text { color: var(--primary-color); cursor: pointer; text-decoration: none; font-weight: 500; }
+        .link-text:hover { text-decoration: underline; }
+        .tips { background-color: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 4px; font-size: 12px; margin-bottom: 20px; border: 1px solid #c8e6c9; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 id="pageTitle">用户登录</h1>
+            <p>Global Cigarette Index 库存管理系统</p>
+        </div>
+
+        <div class="tips" id="tipsBox">
+            <strong>系统提示：</strong><br>
+            管理员账号: <b>admin</b> / 密码: <b>123</b><br>
+            普通用户注册后仅可查看主页，无法进入后台。
+        </div>
+
+        <div id="authForm">
+            <div class="form-group">
+                <label>账号</label>
+                <input type="text" id="username" class="form-input" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="password" class="form-input" placeholder="请输入密码">
+            </div>
+            <button class="submit-btn" onclick="handleAuth()">立即登录</button>
+        </div>
+
+        <div class="auth-footer">
+            <span id="switchText">
+                还没有账号？ <a href="#" class="link-text" onclick="switchMode('register')">免费注册</a>
+            </span>
+            <br><br>
+            <a href="主页面.html" class="link-text" style="font-size:12px; color:#999;">← 返回首页 (游客访问)</a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        let currentMode = 'login'; // 'login' 或 'register'
+
+        function switchMode(mode) {
+            currentMode = mode;
+            const title = document.getElementById('pageTitle');
+            const btn = document.querySelector('.submit-btn');
+            const switchText = document.getElementById('switchText');
+            
+            // 清空输入框
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+
+            if (mode === 'register') {
+                title.textContent = '注册新账号';
+                btn.textContent = '立即注册';
+                switchText.innerHTML = '已有账号？ <a href="#" class="link-text" onclick="switchMode(\'login\')">返回登录</a>';
+            } else {
+                title.textContent = '用户登录';
+                btn.textContent = '立即登录';
+                switchText.innerHTML = '还没有账号？ <a href="#" class="link-text" onclick="switchMode(\'register\')">免费注册</a>';
+            }
+        }
+
+        async function handleAuth() {
+            const userIn = document.getElementById('username').value.trim();
+            const passIn = document.getElementById('password').value.trim();
+            const btn = document.querySelector('.submit-btn');
+
+            if (!userIn || !passIn) {
+                alert("请输入完整的账号和密码");
+                return;
+            }
+
+            btn.textContent = '处理中...';
+            btn.disabled = true;
+
+            try {
+                // 根据当前模式决定调用哪个接口
+                const endpoint = currentMode === 'register' ? '/register' : '/login';
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: userIn, password: passIn })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 登录或注册成功
+                    localStorage.setItem('gci_current_user', JSON.stringify(data.user));
+                    
+                    const actionName = currentMode === 'register' ? '注册' : '登录';
+                    alert(`${actionName}成功！正在跳转...`);
+                    
+                    // 权限控制跳转逻辑
+                    if (data.user.role === 'admin') {
+                        window.location.href = 'admin.html'; // 管理员去后台
+                    } else {
+                        // 如果是在注册页面，且角色是 user，则去主页
+                        window.location.href = '主页面.html'; 
+                    }
+                } else {
+                    alert(data.error || '操作失败');
+                }
+
+            } catch (error) {
+                console.error('API错误:', error);
+                alert('连接服务器失败，请确认 node serve.js 已启动！');
+            } finally {
+                btn.textContent = currentMode === 'register' ? '立即注册' : '立即登录';
+                btn.disabled = false;
+            }
+        }
+        
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Enter") handleAuth();
+        });
+    </script>
+</body>
+</html>
